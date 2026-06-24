@@ -21,8 +21,10 @@ export const HISTORY_LEN = intFromEnv(process.env.NEXT_PUBLIC_HISTORY_LEN, 120)
 /** Plafond du buffer de messages entrants avant drop (backpressure, Phase 2). */
 export const MAX_BUFFER = intFromEnv(process.env.NEXT_PUBLIC_MAX_BUFFER, 10_000)
 
-/** Port d'écoute du serveur WebSocket (côté server/). */
-export const WS_PORT = intFromEnv(process.env.WS_PORT, 4000)
-
-/** URL du serveur WebSocket de télémétrie (lue côté client). */
-export const WS_URL = process.env.NEXT_PUBLIC_WS_URL ?? `ws://localhost:${WS_PORT}`
+/**
+ * URL du serveur WebSocket de télémétrie (lue côté client).
+ * 127.0.0.1 plutôt que "localhost" : évite l'ambiguïté IPv6/IPv4 (::1 vs 127.0.0.1)
+ * qui peut faire échouer la connexion du navigateur en local/CI.
+ * (Le port serveur vit dans server/index.ts — non exposé au bundle client.)
+ */
+export const WS_URL = process.env.NEXT_PUBLIC_WS_URL ?? 'ws://127.0.0.1:4000'

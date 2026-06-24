@@ -5,10 +5,13 @@
 import { WebSocketServer, WebSocket } from 'ws'
 import { FleetSimulator } from './simulator'
 import type { WireMessage } from './protocol'
-import { FLEET_SIZE, TICK_HZ, WS_PORT } from '../src/lib/config'
+import { FLEET_SIZE, TICK_HZ } from '../src/lib/config'
 
+// Port serveur-only (jamais exposé au bundle client). Bind explicite sur
+// 127.0.0.1 pour matcher l'URL client et éviter l'ambiguïté IPv6/IPv4.
+const WS_PORT = Number.parseInt(process.env.WS_PORT ?? '', 10) || 4000
 const sim = new FleetSimulator(FLEET_SIZE)
-const wss = new WebSocketServer({ port: WS_PORT })
+const wss = new WebSocketServer({ port: WS_PORT, host: '127.0.0.1' })
 
 function send(ws: WebSocket, msg: WireMessage): void {
   if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(msg))
@@ -33,5 +36,5 @@ setInterval(() => {
 }, intervalMs)
 
 console.log(
-  `[fleetscope] WS server on ws://localhost:${WS_PORT} — ${FLEET_SIZE} GPUs @ ${TICK_HZ} Hz`,
+  `[fleetscope] WS server on ws://127.0.0.1:${WS_PORT} — ${FLEET_SIZE} GPUs @ ${TICK_HZ} Hz`,
 )

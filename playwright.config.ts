@@ -23,11 +23,21 @@ export default defineConfig({
     actionTimeout: 30000,
   },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
-  // `pnpm dev` lance Next + le serveur WS (concurrently) : le smoke E2E est autonome.
-  webServer: {
-    command: 'pnpm dev',
-    url: 'http://127.0.0.1:3000',
-    reuseExistingServer: !process.env.CI,
-    timeout: 120000,
-  },
+  // On démarre le serveur WS et Next séparément (pas via `pnpm dev`/concurrently) :
+  // Playwright attend les DEUX ports → pas de course de démarrage, et chaque process
+  // est un enfant direct de Playwright (plus robuste en CI).
+  webServer: [
+    {
+      command: 'pnpm server',
+      port: 4000,
+      reuseExistingServer: !process.env.CI,
+      timeout: 60000,
+    },
+    {
+      command: 'pnpm dev:web',
+      url: 'http://127.0.0.1:3000',
+      reuseExistingServer: !process.env.CI,
+      timeout: 120000,
+    },
+  ],
 })

@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "concurrently -n web,ws -c blue,magenta \"pnpm dev:web\" \"pnpm server\"",
     "dev:web": "next dev",
-    "server": "tsx watch server/index.ts",
+    "server": "tsx server/index.ts",
+    "server:watch": "tsx watch server/index.ts",
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
