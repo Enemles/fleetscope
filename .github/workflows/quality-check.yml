@@ -1,0 +1,40 @@
+name: ✅ Contrôle Qualité
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  code-quality:
+    name: 🔍 Lint · Types · Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Récupération du code
+        uses: actions/checkout@v4
+
+      - name: 📦 Installation de pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: 🔧 Configuration de Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: 📦 Installation des dépendances
+        run: pnpm install --frozen-lockfile
+
+      - name: 🧹 Vérification du linting
+        run: pnpm lint
+
+      - name: 🔤 Vérification des types TypeScript
+        run: pnpm exec tsc --noEmit
+
+      - name: 🏗️ Build de l'application
+        run: pnpm build
