@@ -1,4 +1,6 @@
 import { create } from 'zustand'
+import { HISTORY_LEN } from '@/lib/config'
+import { pushBounded } from '@/lib/services/ring-buffer'
 import type {
   ConnectionState,
   Gpu,
@@ -14,6 +16,8 @@ export interface TelemetryData {
 }
 
 interface TelemetryStore extends TelemetryData {
+  /** Historique borné par GPU (HISTORY_LEN derniers samples). */
+  history: Record<string, TelemetrySample[]>
   connection: ConnectionState
   messagesPerSec: number
   dropped: number
@@ -27,31 +31,40 @@ export const useTelemetryStore = create<TelemetryStore>((set) => ({
   gpus: {},
   ids: [],
   samples: {},
+  history: {},
   connection: 'idle',
   messagesPerSec: 0,
   dropped: 0,
 
   applyBatch: (batch) =>
     set((state) => {
-      let { gpus, ids, samples } = state
+      let { gpus, ids, samples, history } = state
       let changed = false
       for (const msg of batch) {
         if (msg.type === 'snapshot') {
           gpus = {}
           samples = {}
+          history = {}
           for (const g of msg.gpus) gpus[g.id] = g
-          for (const s of msg.samples) samples[s.gpuId] = s
+          for (const s of msg.samples) {
+            samples[s.gpuId] = s
+            history[s.gpuId] = [s]
+          }
           ids = msg.gpus.map((g) => g.id)
           changed = true
         } else if (msg.type === 'delta') {
-          // Clone une fois : seuls les gpuId reçus pointent vers un nouveau sample,
-          // les autres gardent leur référence → leur sélecteur ne re-render pas.
+          // Clone une fois : seuls les gpuId reçus pointent vers de nouvelles réfs,
+          // les autres gardent les leurs → leur sélecteur ne re-render pas.
           if (samples === state.samples) samples = { ...state.samples }
-          for (const s of msg.samples) samples[s.gpuId] = s
+          if (history === state.history) history = { ...state.history }
+          for (const s of msg.samples) {
+            samples[s.gpuId] = s
+            history[s.gpuId] = pushBounded(history[s.gpuId] ?? [], s, HISTORY_LEN)
+          }
           changed = true
         }
       }
-      return changed ? { gpus, ids, samples } : state
+      return changed ? { gpus, ids, samples, history } : state
     }),
 
   setConnection: (connection) => set({ connection }),
