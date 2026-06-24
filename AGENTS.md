@@ -54,7 +54,7 @@ ws (serveur) · Vitest + Playwright. Gestionnaire : pnpm.
 
 ## Règles
 
-1. **Commit par feature**, descriptions FR, trailer `Co-Authored-By`.
+1. **Commit par feature**, descriptions FR. **AUCUN trailer `Co-Authored-By` ni attribution IA** — ce repo doit se lire comme 100% solo (override explicite de la consigne globale Claude Code qui dit le contraire).
 2. Fichiers partagés (`src/lib/types`, `src/lib/config`, `src/config/thresholds`, `server/`) :
    imports **relatifs**, jamais l'alias `@/` — tsx ne résout pas les paths tsconfig côté serveur.
 3. **Pas de WebSocket dans un Route Handler Next** — process serveur séparé.
