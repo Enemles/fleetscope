@@ -1,10 +1,7 @@
 'use client'
 
-import {
-  useConnection,
-  useFleetStats,
-  useTelemetryMetrics,
-} from '@/lib/store/telemetry-context'
+import { useConnection, useTelemetryMetrics } from '@/hooks/use-connection'
+import { useFleetStats } from '@/hooks/use-fleet-stats'
 import type { ConnectionState } from '@/lib/types'
 
 const LABEL: Record<ConnectionState, string> = {

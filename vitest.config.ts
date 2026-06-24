@@ -33,7 +33,6 @@ export default defineConfig({
         'src/test/**',
         '**/*.d.ts',
         'src/lib/types/**/*', // types only
-        'src/lib/store/telemetry-context.tsx', // impl Context, non couverte
         '**/__tests__/**',
         '**/*.test.ts',
         '**/*.spec.ts',

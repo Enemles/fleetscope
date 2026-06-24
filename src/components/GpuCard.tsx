@@ -2,7 +2,7 @@
 
 import { Card } from '@/components/ui/card'
 import { HEALTH_COLOR } from '@/config/thresholds'
-import { useGpu } from '@/lib/store/telemetry-context'
+import { useGpu } from '@/hooks/use-gpu'
 import { formatGb, formatPct, formatTemp, formatWatts } from '@/lib/utils'
 
 export function GpuCard({ id }: { id: string }) {

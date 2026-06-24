@@ -1,7 +1,7 @@
 'use client'
 
 import { GpuCard } from '@/components/GpuCard'
-import { useFleetIds } from '@/lib/store/telemetry-context'
+import { useFleetIds } from '@/hooks/use-fleet-ids'
 
 // Grille sans virtualisation (une card par GPU).
 export function GpuCardGridNaive() {

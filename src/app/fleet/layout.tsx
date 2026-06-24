@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { ConnectionStatusBar } from '@/components/ConnectionStatusBar'
-import { TelemetryProvider } from '@/lib/store/telemetry-context'
+import { TelemetryProvider } from '@/providers/TelemetryProvider'
 
 export default function FleetLayout({ children }: { children: ReactNode }) {
   return (
