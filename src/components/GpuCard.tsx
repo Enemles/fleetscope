@@ -4,17 +4,22 @@ import { Card } from '@/components/ui/card'
 import { GpuSparkline } from '@/components/GpuSparkline'
 import { HEALTH_COLOR } from '@/config/thresholds'
 import { useGpu } from '@/hooks/use-gpu'
+import { useTelemetryStore } from '@/lib/store/telemetry-store'
 import { formatGb, formatPct, formatTemp, formatWatts } from '@/lib/utils'
 
 export function GpuCard({ id }: { id: string }) {
   const { gpu, sample } = useGpu(id)
+  const select = useTelemetryStore((s) => s.select)
   if (!gpu) return null
 
   const health = sample?.health ?? 'offline'
   const util = sample?.utilizationPct ?? 0
 
   return (
-    <Card className="gap-2 p-3">
+    <Card
+      className="cursor-pointer gap-2 p-3 transition-colors hover:border-foreground/25"
+      onClick={() => select(id)}
+    >
       <div className="flex items-center justify-between">
         <span className="font-mono text-xs font-medium">{gpu.id}</span>
         <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">

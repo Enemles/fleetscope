@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { ConnectionStatusBar } from '@/components/ConnectionStatusBar'
+import { GpuDetailDrawer } from '@/components/GpuDetailDrawer'
 import { TelemetryProvider } from '@/providers/TelemetryProvider'
 
 export default function FleetLayout({ children }: { children: ReactNode }) {
@@ -14,6 +15,7 @@ export default function FleetLayout({ children }: { children: ReactNode }) {
         </header>
         <main className="p-4">{children}</main>
       </div>
+      <GpuDetailDrawer />
     </TelemetryProvider>
   )
 }

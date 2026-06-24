@@ -21,10 +21,13 @@ interface TelemetryStore extends TelemetryData {
   connection: ConnectionState
   messagesPerSec: number
   dropped: number
+  /** GPU dont le détail est ouvert (drawer), ou null. */
+  selectedGpuId: string | null
   /** Applique un lot de messages wire en UN set → un notify par frame. */
   applyBatch: (batch: WireMessage[]) => void
   setConnection: (connection: ConnectionState) => void
   setMetrics: (messagesPerSec: number, dropped: number) => void
+  select: (id: string | null) => void
 }
 
 export const useTelemetryStore = create<TelemetryStore>((set) => ({
@@ -35,6 +38,7 @@ export const useTelemetryStore = create<TelemetryStore>((set) => ({
   connection: 'idle',
   messagesPerSec: 0,
   dropped: 0,
+  selectedGpuId: null,
 
   applyBatch: (batch) =>
     set((state) => {
@@ -69,4 +73,5 @@ export const useTelemetryStore = create<TelemetryStore>((set) => ({
 
   setConnection: (connection) => set({ connection }),
   setMetrics: (messagesPerSec, dropped) => set({ messagesPerSec, dropped }),
+  select: (selectedGpuId) => set({ selectedGpuId }),
 }))
