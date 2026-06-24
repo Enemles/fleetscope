@@ -1,6 +1,7 @@
 'use client'
 
 import { Card } from '@/components/ui/card'
+import { GpuSparkline } from '@/components/GpuSparkline'
 import { HEALTH_COLOR } from '@/config/thresholds'
 import { useGpu } from '@/hooks/use-gpu'
 import { formatGb, formatPct, formatTemp, formatWatts } from '@/lib/utils'
@@ -38,6 +39,8 @@ export function GpuCard({ id }: { id: string }) {
         <Metric label="Mem" value={sample ? formatGb(sample.memoryUsedGb) : '—'} />
         <Metric label="Power" value={sample ? formatWatts(sample.powerDrawW) : '—'} />
       </div>
+
+      <GpuSparkline id={id} color={HEALTH_COLOR[health]} />
     </Card>
   )
 }
