@@ -1,13 +1,11 @@
 import { test, expect } from '@playwright/test'
 
-// Smoke Phase 1 : vérifie la chaîne complète serveur WS → client → cards live.
-// (Phase 7 enrichira : route heatmap, déconnexion/reconnexion, etc.)
+// Smoke E2E : serveur WS → client → cards live.
 
 test('le dashboard se connecte et les cards se mettent à jour en live', async ({
   page,
 }) => {
-  // Le hook naïf (Phase 1) ne retente pas la connexion : si le serveur WS n'était
-  // pas prêt au montage, on re-navigue jusqu'à "Live" (limite corrigée en Phase 2).
+  // Re-navigue jusqu'à "Live" si le serveur WS n'est pas prêt au boot.
   await expect(async () => {
     await page.goto('/fleet')
     await expect(page.getByText('Live', { exact: true })).toBeVisible({

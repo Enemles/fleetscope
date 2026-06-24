@@ -6,8 +6,7 @@ export default defineConfig({
     globals: true,
     environment: 'happy-dom',
     setupFiles: ['./src/test/setup.ts'],
-    // Pas de test au démarrage du projet : on ne casse pas la CI tant que la
-    // Phase 7 n'a pas écrit les tests unitaires.
+    // Pas encore de tests unitaires → ne casse pas la CI.
     passWithNoTests: true,
     include: ['**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
     exclude: [
@@ -22,7 +21,7 @@ export default defineConfig({
       provider: 'v8',
       // json-summary alimente le commentaire de couverture en CI (coverage-summary.json).
       reporter: ['text', 'json', 'json-summary', 'html'],
-      // On ne mesure QUE la logique pure et testable (cf. plan Phase 7).
+      // Couverture limitée à la logique pure testable.
       include: [
         'src/lib/services/**/*.ts', // parser, reconnect, ring-buffer
         'src/lib/store/**/*.ts', // store + selectors
@@ -34,7 +33,7 @@ export default defineConfig({
         'src/test/**',
         '**/*.d.ts',
         'src/lib/types/**/*', // types only
-        'src/lib/store/telemetry-context.tsx', // impl Context "avant" (Phase 1), non testée exprès
+        'src/lib/store/telemetry-context.tsx', // impl Context, non couverte
         '**/__tests__/**',
         '**/*.test.ts',
         '**/*.spec.ts',

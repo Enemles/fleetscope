@@ -1,14 +1,11 @@
-// Serveur WebSocket de télémétrie — process séparé (PAS un Route Handler Next,
-// cf. AGENTS.md). À la connexion : `hello` + `snapshot`. Puis un `delta` à chaque
-// tick, broadcasté à tous les clients.
+// Serveur WS de télémétrie — process séparé (pas un Route Handler Next).
 
 import { WebSocketServer, WebSocket } from 'ws'
 import { FleetSimulator } from './simulator'
 import type { WireMessage } from './protocol'
 import { FLEET_SIZE, TICK_HZ } from '../src/lib/config'
 
-// Port serveur-only (jamais exposé au bundle client). Bind explicite sur
-// 127.0.0.1 pour matcher l'URL client et éviter l'ambiguïté IPv6/IPv4.
+// Bind 127.0.0.1 (matche l'URL client, évite l'ambiguïté IPv6/IPv4).
 const WS_PORT = Number.parseInt(process.env.WS_PORT ?? '', 10) || 4000
 const sim = new FleetSimulator(FLEET_SIZE)
 const wss = new WebSocketServer({ port: WS_PORT, host: '127.0.0.1' })

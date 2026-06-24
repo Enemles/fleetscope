@@ -2,8 +2,7 @@ import { fileURLToPath } from 'node:url'
 import { dirname } from 'node:path'
 import type { NextConfig } from 'next'
 
-// Pin le root du workspace sur ce dossier : un lockfile parasite plus haut
-// (~/pnpm-lock.yaml) faisait inférer à Next un mauvais root.
+// Pin le root workspace ici (un lockfile parasite plus haut fausse l'inférence de Next).
 const root = dirname(fileURLToPath(import.meta.url))
 
 const nextConfig: NextConfig = {

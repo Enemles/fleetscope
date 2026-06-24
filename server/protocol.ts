@@ -1,6 +1,4 @@
-// Protocole wire côté serveur — réexporte le contrat canonique de src/lib/types.
-// Source unique de vérité : src/lib/types. Import relatif volontaire (tsx ne
-// résout pas l'alias @/ des paths tsconfig côté serveur).
+// Réexporte le contrat wire de src/lib/types (import relatif : tsx ne résout pas @/).
 export type {
   Gpu,
   GpuModel,

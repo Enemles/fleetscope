@@ -5,12 +5,6 @@ import { HEALTH_COLOR } from '@/config/thresholds'
 import { useGpu } from '@/lib/store/telemetry-context'
 import { formatGb, formatPct, formatTemp, formatWatts } from '@/lib/utils'
 
-/**
- * Une card GPU. NAÏF (Phase 1) : lit via le hook de contexte `useGpu`, donc
- * re-render à CHAQUE tick (le contexte change → tous les consumers re-render),
- * même si la valeur de ce GPU n'a pas bougé. Phase 3 : sélecteur Zustand.
- * Phase 5 : React.memo + virtualisation.
- */
 export function GpuCard({ id }: { id: string }) {
   const { gpu, sample } = useGpu(id)
   if (!gpu) return null

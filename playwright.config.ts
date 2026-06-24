@@ -1,9 +1,5 @@
 import { defineConfig, devices } from '@playwright/test'
 
-/**
- * Config Playwright — smoke E2E chromium uniquement.
- * Voir https://playwright.dev/docs/test-configuration.
- */
 export default defineConfig({
   testDir: './tests',
   fullyParallel: !process.env.CI,
@@ -14,8 +10,7 @@ export default defineConfig({
   timeout: 60000,
   use: {
     baseURL: 'http://127.0.0.1:3000',
-    // En CI, le runner a un proxy que chromium applique même au localhost
-    // -> net::ERR_NAME_NOT_RESOLVED sur 127.0.0.1. On force une connexion directe.
+    // CI : le proxy du runner casse 127.0.0.1 → connexion directe.
     launchOptions: { args: ['--no-proxy-server'] },
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
@@ -23,9 +18,7 @@ export default defineConfig({
     actionTimeout: 30000,
   },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
-  // On démarre le serveur WS et Next séparément (pas via `pnpm dev`/concurrently) :
-  // Playwright attend les DEUX ports → pas de course de démarrage, et chaque process
-  // est un enfant direct de Playwright (plus robuste en CI).
+  // Serveurs séparés (pas via concurrently) : Playwright attend les 2 ports.
   webServer: [
     {
       command: 'pnpm server',

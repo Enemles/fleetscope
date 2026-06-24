@@ -1,13 +1,9 @@
-// Modèle de données partagé fleetscope — le contrat entre le serveur de
-// simulation (server/) et le front (src/). Le serveur émet, le front consomme.
-//
-// Aucun import ici : ce fichier est la source unique de vérité, chargée aussi
-// bien par Next (alias @/) que par tsx côté serveur (import relatif).
+// Contrat de données partagé serveur/front. Aucun import (chargé par Next ET tsx).
 
-/** Modèles de GPU simulés (clin d'œil aux accélérateurs AI : AMD MI3xx, NVIDIA H100). */
+/** Modèles de GPU simulés. */
 export type GpuModel = 'MI300X' | 'MI325X' | 'H100'
 
-/** État de santé d'un GPU, dérivé côté serveur à partir des seuils (config/thresholds). */
+/** Santé d'un GPU, dérivée serveur-side. */
 export type GpuHealth = 'ok' | 'warn' | 'critical' | 'offline'
 
 /** Identité + faits lents d'un GPU. Envoyé une seule fois via le snapshot. */
@@ -29,15 +25,10 @@ export interface TelemetrySample {
   temperatureC: number // ex. 30–95
   powerDrawW: number // ex. 100–750
   fanPct: number // 0–100
-  health: GpuHealth // dérivé serveur-side (le client reste un pur renderer)
+  health: GpuHealth // dérivé serveur-side
 }
 
-/**
- * Protocole wire (serveur → client). Pattern "snapshot puis deltas" :
- *  - `hello`    : poignée de main (fréquence, taille de fleet)
- *  - `snapshot` : état complet à la connexion / resync (après reconnexion)
- *  - `delta`    : seulement les samples qui ont changé à ce tick
- */
+/** Protocole wire (serveur → client) : snapshot puis deltas. */
 export type WireMessage =
   | { type: 'hello'; serverTs: number; tickHz: number; fleetSize: number }
   | { type: 'snapshot'; ts: number; gpus: Gpu[]; samples: TelemetrySample[] }

@@ -1,8 +1,5 @@
-// Simulateur de fleet GPU : une state machine qui produit des métriques
-// plausibles (random walks lissés + thermal events rares). Déterministe (PRNG
-// seedé) pour une fleet reproductible d'un run à l'autre.
-//
-// Imports relatifs (fichier serveur chargé par tsx) — cf. AGENTS.md.
+// Simulateur de fleet GPU : state machine déterministe (PRNG seedé), random walks
+// + thermal events rares. Imports relatifs (chargé par tsx).
 
 import { deriveHealth } from '../src/config/thresholds'
 import { FLEET_SIZE } from '../src/lib/config'
@@ -16,7 +13,7 @@ const MODELS: { model: GpuModel; memoryTotalGb: number }[] = [
 
 const GPUS_PER_HOST = 8
 
-/** PRNG déterministe (mulberry32) — évite Math.random pour la reproductibilité. */
+/** PRNG déterministe (mulberry32). */
 function mulberry32(seed: number): () => number {
   let a = seed
   return () => {
@@ -80,11 +77,7 @@ export class FleetSimulator {
     return this.state.map((s) => this.sample(s, ts))
   }
 
-  /**
-   * Avance la simulation d'un tick et renvoie TOUS les samples.
-   * (Le random walk bouge chaque GPU à chaque tick : le "delta" = toute la fleet.
-   *  C'est volontaire — ça maximise la pression de re-render pour la leçon Phase 3.)
-   */
+  /** Avance d'un tick et renvoie TOUS les samples (toute la fleet bouge à chaque tick). */
   tick(ts: number): TelemetrySample[] {
     for (const s of this.state) this.step(s)
     return this.state.map((s) => this.sample(s, ts))
