@@ -12,6 +12,10 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Artefacts générés (couverture / tests E2E).
+    "coverage/**",
+    "test-results/**",
+    "playwright-report/**",
   ]),
 ]);
 
