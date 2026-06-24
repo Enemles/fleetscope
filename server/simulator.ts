@@ -13,6 +13,9 @@ const MODELS: { model: GpuModel; memoryTotalGb: number }[] = [
 
 const GPUS_PER_HOST = 8
 
+// Fraction de GPUs qui bougent par tick → un delta partiel (vraie télémétrie).
+const STEP_PROBABILITY = 0.15
+
 /** PRNG déterministe (mulberry32). */
 function mulberry32(seed: number): () => number {
   let a = seed
@@ -77,10 +80,17 @@ export class FleetSimulator {
     return this.state.map((s) => this.sample(s, ts))
   }
 
-  /** Avance d'un tick et renvoie TOUS les samples (toute la fleet bouge à chaque tick). */
+  /** Avance d'un tick : n'émet QUE les GPUs qui ont bougé (delta partiel). */
   tick(ts: number): TelemetrySample[] {
-    for (const s of this.state) this.step(s)
-    return this.state.map((s) => this.sample(s, ts))
+    const changed: TelemetrySample[] = []
+    for (const s of this.state) {
+      // thermal event en cours → bouge toujours ; sinon ~STEP_PROBABILITY de bouger
+      if (s.thermalEvent > 0 || this.rng() < STEP_PROBABILITY) {
+        this.step(s)
+        changed.push(this.sample(s, ts))
+      }
+    }
+    return changed
   }
 
   private step(s: SimState): void {

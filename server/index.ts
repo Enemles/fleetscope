@@ -25,8 +25,9 @@ const intervalMs = Math.max(1, Math.round(1000 / TICK_HZ))
 setInterval(() => {
   if (wss.clients.size === 0) return
   const ts = Date.now()
-  const frame: WireMessage = { type: 'delta', ts, samples: sim.tick(ts) }
-  const payload = JSON.stringify(frame)
+  const samples = sim.tick(ts)
+  if (samples.length === 0) return // rien n'a bougé ce tick → pas de frame
+  const payload = JSON.stringify({ type: 'delta', ts, samples } satisfies WireMessage)
   for (const ws of wss.clients) {
     if (ws.readyState === WebSocket.OPEN) ws.send(payload)
   }
