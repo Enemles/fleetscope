@@ -1,6 +1,10 @@
 'use client'
 
-import { useConnection, useFleetStats } from '@/lib/store/telemetry-context'
+import {
+  useConnection,
+  useFleetStats,
+  useTelemetryMetrics,
+} from '@/lib/store/telemetry-context'
 import type { ConnectionState } from '@/lib/types'
 
 const LABEL: Record<ConnectionState, string> = {
@@ -22,6 +26,7 @@ const DOT: Record<ConnectionState, string> = {
 export function ConnectionStatusBar() {
   const connection = useConnection()
   const stats = useFleetStats()
+  const metrics = useTelemetryMetrics()
   const pulsing = connection === 'connecting' || connection === 'reconnecting'
 
   return (
@@ -41,6 +46,17 @@ export function ConnectionStatusBar() {
       </span>
       <span className="text-muted-foreground">
         critical <span className="font-mono tabular-nums text-red-500">{stats.critical}</span>
+      </span>
+      <span className="text-muted-foreground">
+        <span className="font-mono tabular-nums text-foreground">{metrics.messagesPerSec}</span> msg/s
+      </span>
+      <span className="text-muted-foreground">
+        dropped{' '}
+        <span
+          className={`font-mono tabular-nums${metrics.dropped > 0 ? ' text-amber-500' : ' text-foreground'}`}
+        >
+          {metrics.dropped}
+        </span>
       </span>
     </div>
   )

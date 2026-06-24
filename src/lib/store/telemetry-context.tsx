@@ -15,14 +15,7 @@ import type {
   WireMessage,
 } from '@/lib/types'
 
-/**
- * STORE NAÏF (Phase 1) — le "avant" de la leçon #1.
- *
- * Tout l'état vit dans un seul React Context. À chaque `delta`, le reducer recrée
- * l'objet `samples` ENTIER → nouvelle référence de la provider value → TOUS les
- * consumers du contexte re-render, même ceux qui ne lisent qu'un seul GPU.
- * C'est le re-render storm que la Phase 3 corrige avec un store Zustand + sélecteurs.
- */
+// État dans un seul Context : un delta change la value → tous les consumers re-render.
 
 interface TelemetryState {
   gpus: Record<string, Gpu>
@@ -32,7 +25,8 @@ interface TelemetryState {
 
 const initialState: TelemetryState = { gpus: {}, ids: [], samples: {} }
 
-function reducer(state: TelemetryState, msg: WireMessage): TelemetryState {
+/** Applique un message wire à l'état. */
+function applyOne(state: TelemetryState, msg: WireMessage): TelemetryState {
   switch (msg.type) {
     case 'hello':
       return state
@@ -51,20 +45,43 @@ function reducer(state: TelemetryState, msg: WireMessage): TelemetryState {
   }
 }
 
+/** Plie un lot de messages en un seul état → un commit par frame. */
+function reducer(state: TelemetryState, batch: WireMessage[]): TelemetryState {
+  let next = state
+  for (const msg of batch) next = applyOne(next, msg)
+  return next
+}
+
 const StateContext = createContext<TelemetryState>(initialState)
 const ConnectionContext = createContext<ConnectionState>('idle')
 
+/** Métriques affichées dans la status bar. */
+export interface TelemetryMetrics {
+  messagesPerSec: number
+  dropped: number
+}
+const MetricsContext = createContext<TelemetryMetrics>({
+  messagesPerSec: 0,
+  dropped: 0,
+})
+
 export function TelemetryProvider({ children }: { children: ReactNode }) {
-  const [state, dispatch] = useReducer(reducer, initialState)
-  const connection = useTelemetrySocket(dispatch)
+  const [state, applyBatch] = useReducer(reducer, initialState)
+  const { connection, messagesPerSec, dropped } = useTelemetrySocket(applyBatch)
+  const metrics = useMemo(
+    () => ({ messagesPerSec, dropped }),
+    [messagesPerSec, dropped],
+  )
   return (
     <ConnectionContext.Provider value={connection}>
-      <StateContext.Provider value={state}>{children}</StateContext.Provider>
+      <MetricsContext.Provider value={metrics}>
+        <StateContext.Provider value={state}>{children}</StateContext.Provider>
+      </MetricsContext.Provider>
     </ConnectionContext.Provider>
   )
 }
 
-/** Liste stable des ids (ne change qu'au snapshot — mais re-render quand même, naïf). */
+/** Liste des ids de la fleet. */
 export function useFleetIds(): string[] {
   return useContext(StateContext).ids
 }
@@ -79,6 +96,11 @@ export function useConnection(): ConnectionState {
   return useContext(ConnectionContext)
 }
 
+/** Débit + drops, pour la status bar. */
+export function useTelemetryMetrics(): TelemetryMetrics {
+  return useContext(MetricsContext)
+}
+
 export interface FleetStats {
   total: number
   live: number
@@ -86,7 +108,7 @@ export interface FleetStats {
   critical: number
 }
 
-/** Agrégats de la fleet (recalculés à chaque tick — re-render du header). */
+/** Agrégats de la fleet. */
 export function useFleetStats(): FleetStats {
   const { ids, samples } = useContext(StateContext)
   return useMemo(() => {

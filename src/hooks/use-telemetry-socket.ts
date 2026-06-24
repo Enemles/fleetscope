@@ -1,48 +1,149 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { WS_URL } from '@/lib/config'
+import { MAX_BUFFER, WS_URL } from '@/lib/config'
+import { backoffDelay, shouldReconnect } from '@/lib/services/reconnect'
 import type { ConnectionState, WireMessage } from '@/lib/types'
 
-/**
- * VERSION NAÏVE (Phase 1) — le "avant".
- *
- * Ouvre le WebSocket et appelle `onMessage` IMMÉDIATEMENT à chaque frame reçue :
- * 1 message = 1 update React. Pas de batching, pas de reconnexion, pas de backpressure.
- *
- * 👉 Phase 2 (à écrire par Selmene) remplace ça par :
- *    - buffer des messages dans un useRef, flush 1×/requestAnimationFrame
- *    - reconnexion avec backoff exponentiel + jitter
- *    - garde de backpressure (MAX_BUFFER) + compteur de drops
- *    - pause/reprise via la Visibility API
- */
+export interface TelemetrySocket {
+  connection: ConnectionState
+  messagesPerSec: number // frames WS/s (≈ TICK_HZ)
+  dropped: number // cumul droppé (backpressure)
+}
+
 export function useTelemetrySocket(
-  onMessage: (msg: WireMessage) => void,
-): ConnectionState {
-  // On se connecte dès le montage : l'état part directement à "connecting".
-  const [connection, setConnection] = useState<ConnectionState>('connecting')
+  onFlush: (batch: WireMessage[]) => void,
+): TelemetrySocket {
+  const [connection, setConnection] = useState<ConnectionState>('idle')
+  const [messagesPerSec, setMessagesPerSec] = useState(0)
+  const [dropped, setDropped] = useState(0)
 
-  // Garde la dernière callback sans relancer la connexion (maj dans un effet,
-  // jamais pendant le render).
-  const onMessageRef = useRef(onMessage)
+  // dernière callback sans relancer l'effet (sinon le socket se rouvrirait)
+  const onFlushRef = useRef(onFlush)
   useEffect(() => {
-    onMessageRef.current = onMessage
-  }, [onMessage])
+    onFlushRef.current = onFlush
+  }, [onFlush])
 
   useEffect(() => {
-    const ws = new WebSocket(WS_URL)
-    ws.onopen = () => setConnection('live')
-    ws.onclose = () => setConnection('closed')
-    ws.onerror = () => setConnection('closed')
-    ws.onmessage = (event) => {
-      try {
-        onMessageRef.current(JSON.parse(event.data) as WireMessage)
-      } catch {
-        // Frame illisible ignorée (naïf : pas de validation Zod — Phase 2/7).
+    let ws: WebSocket | null = null
+    let buffer: WireMessage[] = []
+    let rafId: number | null = null
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null
+    let attempt = 0
+    let recvCount = 0
+    let droppedTotal = 0
+    let intentionalClose = false // unmount / onglet caché → pas de retry
+    let disposed = false
+
+    // flush rAF : vider le buffer en un seul update par frame
+    const flush = () => {
+      rafId = null
+      if (buffer.length > 0) {
+        const batch = buffer
+        buffer = [] // détaché avant l'appel pour ne pas corrompre un push concurrent
+        onFlushRef.current(batch)
       }
     }
-    return () => ws.close()
+    const scheduleFlush = () => {
+      if (rafId === null) rafId = requestAnimationFrame(flush)
+    }
+
+    const ingest = (raw: string) => {
+      let msg: WireMessage
+      try {
+        msg = JSON.parse(raw) as WireMessage
+      } catch {
+        return
+      }
+      if (!msg || typeof (msg as { type?: unknown }).type !== 'string') return
+      recvCount++
+      buffer.push(msg)
+      // backpressure : plafonne le buffer, droppe les plus vieux
+      if (buffer.length > MAX_BUFFER) {
+        const overflow = buffer.length - MAX_BUFFER
+        buffer.splice(0, overflow)
+        droppedTotal += overflow
+      }
+      scheduleFlush()
+    }
+
+    const connect = () => {
+      if (disposed) return
+      setConnection(attempt === 0 ? 'connecting' : 'reconnecting')
+      try {
+        ws = new WebSocket(WS_URL)
+      } catch {
+        scheduleReconnect()
+        return
+      }
+      ws.onopen = () => {
+        attempt = 0
+        setConnection('live')
+      }
+      ws.onmessage = (event) => ingest(event.data as string)
+      ws.onerror = () => {
+        // un 'error' est suivi d'un 'close' → onclose pilote seul l'état
+      }
+      ws.onclose = (event) => {
+        ws = null
+        if (disposed || intentionalClose) return
+        if (!shouldReconnect(event.code)) {
+          setConnection('closed')
+          return
+        }
+        scheduleReconnect()
+      }
+    }
+
+    const scheduleReconnect = () => {
+      const delay = backoffDelay(attempt) // attempt 0 → ~1s, puis incrément
+      attempt++
+      setConnection('reconnecting')
+      reconnectTimer = setTimeout(connect, delay)
+    }
+
+    // onglet caché → fermer (rAF gelé) ; visible → rouvrir (snapshot = resync)
+    const handleVisibility = () => {
+      if (document.visibilityState === 'hidden') {
+        intentionalClose = true
+        if (reconnectTimer !== null) clearTimeout(reconnectTimer)
+        reconnectTimer = null
+        if (rafId !== null) cancelAnimationFrame(rafId)
+        rafId = null
+        buffer = []
+        ws?.close(1000, 'tab hidden')
+        ws = null
+        setConnection('idle')
+      } else if (!ws) {
+        intentionalClose = false
+        if (reconnectTimer !== null) clearTimeout(reconnectTimer)
+        reconnectTimer = null
+        attempt = 0
+        connect()
+      }
+    }
+
+    // débit + drops, échantillonnés à 1 Hz (pas un setState par frame)
+    const rateTimer = setInterval(() => {
+      setMessagesPerSec(recvCount)
+      recvCount = 0
+      setDropped(droppedTotal)
+    }, 1_000)
+
+    document.addEventListener('visibilitychange', handleVisibility)
+    if (document.visibilityState === 'visible') connect()
+
+    return () => {
+      disposed = true
+      intentionalClose = true
+      clearInterval(rateTimer)
+      if (reconnectTimer !== null) clearTimeout(reconnectTimer)
+      if (rafId !== null) cancelAnimationFrame(rafId)
+      document.removeEventListener('visibilitychange', handleVisibility)
+      ws?.close(1000, 'unmount')
+      ws = null
+    }
   }, [])
 
-  return connection
+  return { connection, messagesPerSec, dropped }
 }
