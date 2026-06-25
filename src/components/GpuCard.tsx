@@ -1,5 +1,6 @@
 'use client'
 
+import { memo } from 'react'
 import { Card } from '@/components/ui/card'
 import { GpuSparkline } from '@/components/GpuSparkline'
 import { HEALTH_COLOR } from '@/config/thresholds'
@@ -7,7 +8,7 @@ import { useGpu } from '@/hooks/use-gpu'
 import { useTelemetryStore } from '@/lib/store/telemetry-store'
 import { formatGb, formatPct, formatTemp, formatWatts } from '@/lib/utils'
 
-export function GpuCard({ id }: { id: string }) {
+export const GpuCard = memo(function GpuCard({ id }: { id: string }) {
   const { gpu, sample } = useGpu(id)
   const select = useTelemetryStore((s) => s.select)
   if (!gpu) return null
@@ -48,7 +49,7 @@ export function GpuCard({ id }: { id: string }) {
       <GpuSparkline id={id} color={HEALTH_COLOR[health]} />
     </Card>
   )
-}
+})
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (

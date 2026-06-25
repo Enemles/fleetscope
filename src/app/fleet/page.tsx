@@ -1,5 +1,5 @@
-import { GpuCardGridNaive } from '@/components/GpuCardGridNaive'
+import { GpuCardGrid } from '@/components/GpuCardGrid'
 
 export default function FleetPage() {
-  return <GpuCardGridNaive />
+  return <GpuCardGrid />
 }
