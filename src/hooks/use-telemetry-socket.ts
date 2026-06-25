@@ -127,7 +127,7 @@ export function useTelemetrySocket(
     }, 1_000)
 
     document.addEventListener('visibilitychange', handleVisibility)
-    if (document.visibilityState === 'visible') connect()
+    connect() // pas de gate sur visibilityState : headless le rapporte 'hidden'
 
     return () => {
       disposed = true

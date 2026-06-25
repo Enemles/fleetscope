@@ -24,6 +24,21 @@ test('le dashboard se connecte et les cards se mettent à jour en live', async (
   expect(after).not.toEqual(before)
 })
 
+test('la route heatmap rend un canvas dimensionné', async ({ page }) => {
+  await expect(async () => {
+    await page.goto('/fleet/heatmap')
+    await expect(page.getByText('Live', { exact: true })).toBeVisible({
+      timeout: 4000,
+    })
+  }).toPass({ timeout: 30000 })
+
+  const canvas = page.locator('main canvas')
+  await expect(canvas).toBeVisible()
+  const box = await canvas.boundingBox()
+  expect(box?.width ?? 0).toBeGreaterThan(0)
+  expect(box?.height ?? 0).toBeGreaterThan(0)
+})
+
 test('la landing pointe vers le dashboard', async ({ page }) => {
   await page.goto('/')
   await expect(

@@ -27,10 +27,12 @@ export default defineConfig({
       timeout: 60000,
     },
     {
-      command: 'pnpm dev:web',
+      // Build de prod (pas `next dev`) : le runtime HMR de Turbopack casse
+      // l'hydratation en headless → l'app ne se connecte jamais. La prod n'a pas de HMR.
+      command: 'pnpm build && pnpm start',
       url: 'http://127.0.0.1:3000',
       reuseExistingServer: !process.env.CI,
-      timeout: 120000,
+      timeout: 180000,
     },
   ],
 })
