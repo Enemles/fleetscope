@@ -21,7 +21,7 @@ export default defineConfig({
   // Serveurs séparés (pas via concurrently) : Playwright attend les 2 ports.
   webServer: [
     {
-      command: 'pnpm server',
+      command: 'pnpm run server',
       port: 4000,
       reuseExistingServer: !process.env.CI,
       timeout: 60000,

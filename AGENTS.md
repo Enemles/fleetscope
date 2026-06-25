@@ -66,13 +66,15 @@ ws (serveur) · Vitest + Playwright. Gestionnaire : pnpm.
 - **Zustand v5** : un sélecteur qui renvoie un nouvel objet boucle → `useShallow`.
   Lectures sans render (canvas) via `store.subscribe` / `store.getState()`.
 - **@tanstack/react-virtual** sous React 19 : `useFlushSync: false` pour laisser React batcher.
+- **`pnpm server` est une commande built-in pnpm** (store server) qui shadow le script et sort
+  en no-op → le serveur WS ne démarre pas. Toujours **`pnpm run server`** (ce que `pnpm dev` fait).
 
 ## Commandes
 
 | Commande | Effet |
 |---|---|
 | `pnpm dev` | Next + serveur WS (concurrently) |
-| `pnpm server` | Serveur WS seul (tsx watch) |
+| `pnpm run server` | Serveur WS seul (PAS `pnpm server`, cf. Gotchas) |
 | `pnpm lint` · `pnpm exec tsc --noEmit` | Lint · typecheck |
 | `pnpm test:run` · `pnpm test:coverage` | Tests unitaires (Vitest, happy-dom) |
 | `pnpm test:e2e` | Smoke E2E (Playwright chromium) |
