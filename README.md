@@ -6,6 +6,8 @@ Un serveur simule une fleet de GPU et pousse leurs métriques (utilisation, temp
 mémoire, puissance) en continu. Le front les affiche en direct — de quelques dizaines à
 quelques milliers de GPU — sans laguer.
 
+![Grille de cards GPU virtualisée — 2000 GPU live](docs/grid.png)
+
 ## Pourquoi ce repo existe
 
 Une étude délibérée des parties *dures* des UI temps réel, traitées chacune en
@@ -40,14 +42,19 @@ Performance), puis on le corrige. Quatre problèmes :
 
 ## Les 4 leçons
 
-> _Les preuves avant/après (captures React Profiler + traces Performance) arrivent en Phase 7._
+> Chiffres mesurés en local (compteur de commits React, nœuds DOM, timing rAF) ;
+> reproductibles en scalant la fleet par `NEXT_PUBLIC_FLEET_SIZE`.
 
 | # | Problème | Symptôme | Fix | Résultat mesuré |
 |---|----------|----------|-----|-----------------|
-| 1 | State HF | Context re-render toutes les cards à chaque tick | Store Zustand + sélecteurs `useShallow` | _à venir_ |
-| 2 | Temps réel | `onmessage` hors batching React, reconnexions sauvages | Buffer rAF (1 commit/frame) + backoff/jitter + backpressure | _à venir_ |
-| 3 | Haute densité | Des milliers de cards montées = jank au scroll | Virtualisation `@tanstack/react-virtual` + `React.memo` | _à venir_ |
-| 4 | Dataviz | SVG = 1 nœud DOM/cellule = navigateur à genoux | Canvas 2D piloté en lecture transient du store | _à venir_ |
+| 1 | State HF | Context re-render **toutes** les cards à chaque tick | Store Zustand + sélecteurs `useShallow` | commits de card **640/s → 113/s** (÷5.7 @64) — seules les cards changées re-render |
+| 2 | Temps réel | `onmessage` hors batching React, reconnexions sauvages | Buffer rAF (1 commit/frame) + backoff/jitter + backpressure | reconnexion espacée **~1 s, 2 s, 4 s…** (jittée, capée 30 s) ; commits bornés à la fréquence d'écran |
+| 3 | Haute densité | Des milliers de cards montées = jank au scroll | Virtualisation `@tanstack/react-virtual` + `React.memo` | @2000 GPU : **44 071 → 1 176 nœuds DOM** (÷37), scroll **~4 → ~85 fps** |
+| 4 | Dataviz | SVG = 1 nœud DOM/cellule = navigateur à genoux | Canvas 2D piloté en lecture transient du store | @2000 cells : **0 render React** en régime établi, **120 fps** |
+
+La heatmap canvas (1 rect/GPU, repeinte hors du cycle React via lecture transient du store) :
+
+![Heatmap d'utilisation GPU haute densité — 2000 cells sur un canvas](docs/heatmap.png)
 
 ## Stack
 
@@ -69,6 +76,17 @@ Pour les démos perf, scaler la fleet et le débit par env :
 ```bash
 NEXT_PUBLIC_FLEET_SIZE=2000 NEXT_PUBLIC_TICK_HZ=20 pnpm dev
 ```
+
+## Tests
+
+```bash
+pnpm test:run        # unit (Vitest) : parser Zod, backoff, ring-buffer, sélecteurs, store
+pnpm test:coverage   # couverture scopée à la logique pure
+pnpm test:e2e        # smoke E2E (Playwright)
+```
+
+> L'E2E tourne contre un build de prod (`pnpm build && pnpm start`) : le runtime HMR de
+> `next dev` (Turbopack) casse l'hydratation en chromium headless. La prod n'a pas de HMR.
 
 ## WebSocket vs SSE — pourquoi un process séparé
 
