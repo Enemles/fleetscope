@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { MAX_BUFFER, WS_URL } from '@/lib/config'
+import { parseWireMessage } from '@/lib/services/message-parser'
 import { backoffDelay, shouldReconnect } from '@/lib/services/reconnect'
 import type { ConnectionState, WireMessage } from '@/lib/types'
 
@@ -49,13 +50,8 @@ export function useTelemetrySocket(
     }
 
     const ingest = (raw: string) => {
-      let msg: WireMessage
-      try {
-        msg = JSON.parse(raw) as WireMessage
-      } catch {
-        return
-      }
-      if (!msg || typeof (msg as { type?: unknown }).type !== 'string') return
+      const msg = parseWireMessage(raw)
+      if (!msg) return // frame illisible ou non conforme
       recvCount++
       buffer.push(msg)
       // backpressure : plafonne le buffer, droppe les plus vieux
